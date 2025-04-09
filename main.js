@@ -1,5 +1,4 @@
 import { createApp } from 'vue';
-import { FightSystem } from './fight.js';
 
 const app = createApp({
   data() {
@@ -39,6 +38,7 @@ const app = createApp({
       },
       
       bullets: [],
+      bulletHellTimer: null,
       attackLinePosition: 0,
       attackDirection: 1,
       attackSpeed: 3,
@@ -50,24 +50,19 @@ const app = createApp({
         right: false,
         z: false,
         x: false
-      },
-      
-      fightSystem: null,
+      }
     };
   },
   
   created() {
     window.addEventListener('keydown', this.handleKeyDown);
     window.addEventListener('keyup', this.handleKeyUp);
-    this.fightSystem = new FightSystem(this);
   },
   
-  unmounted() {
+  destroyed() {
     window.removeEventListener('keydown', this.handleKeyDown);
     window.removeEventListener('keyup', this.handleKeyUp);
-    if (this.fightSystem) {
-      this.fightSystem.cleanup();
-    }
+    this.clearBulletHell();
   },
   
   methods: {
@@ -83,116 +78,29 @@ const app = createApp({
     
     async generateNewMonster() {
       this.monsterCount++;
-      this.showDialog = true;
-      this.dialogQueue = ["* Encountering monster..."];
-      this.showNextDialog();
       
-      try {
-        // Get monster data from LLM
-        const monsterData = await this.requestMonsterFromLLM();
-        
-        if (!monsterData) {
-          throw new Error("Failed to generate monster data");
-        }
-        
-        // Generate monster sprite
-        let spriteUrl;
-        try {
-          spriteUrl = await this.generateMonsterSprite(monsterData.description);
-        } catch (spriteError) {
-          console.error("Error generating sprite:", spriteError);
-          spriteUrl = null;
-        }
-        
-        // Ensure dialog structure exists with fallbacks
-        const dialogData = monsterData.dialog || {};
-        const safeDialog = {
-          intro: Array.isArray(dialogData.intro) ? dialogData.intro : ["* A monster appears!"],
-          fight: Array.isArray(dialogData.fight) ? dialogData.fight : ["* The monster looks determined."],
-          act: dialogData.act || {},
-          spare: Array.isArray(dialogData.spare) ? dialogData.spare : ["* The monster was spared."],
-          defeat: Array.isArray(dialogData.defeat) ? dialogData.defeat : ["* The monster was defeated."]
-        };
-        
-        // Set the current monster with validated data
-        this.currentMonster = {
-          name: monsterData.name || "Mystery Monster",
-          hp: monsterData.hp || 20,
-          maxHp: monsterData.hp || 20,
-          attack: monsterData.attack || 2,
-          defense: monsterData.defense || 1,
-          spriteUrl: spriteUrl,
-          canSpare: false,
-          spareCondition: monsterData.spareCondition || "Complete certain actions",
-          actions: Array.isArray(monsterData.actions) ? monsterData.actions : [
-            { 
-              name: "Check", 
-              description: "See monster stats", 
-              effect: null 
-            }
-          ],
-          bulletPatterns: Array.isArray(monsterData.bulletPatterns) ? monsterData.bulletPatterns : [
-            {
-              name: "Default Pattern",
-              description: "Simple bullets from top to bottom",
-              difficulty: 2,
-              bulletTypes: ["normal"],
-              movements: "Straight down"
-            }
-          ],
-          dialog: safeDialog
-        };
-        
-        // Show introduction dialog only after monster is fully initialized
-        this.showMonsterDialog('intro');
-        
-      } catch (error) {
-        console.error("Error in generateNewMonster:", error);
-        // Use fallback monster if generation fails
-        this.currentMonster = this.getFallbackMonster();
-        this.showMonsterDialog('intro');
-      }
-    },
-    
-    showMonsterDialog(type, actionName = null) {
-      if (!this.currentMonster || !this.currentMonster.dialog) {
-        console.error("Cannot show dialog - monster or dialog not initialized");
-        this.showDialog = true;
-        this.dialogQueue = ["* [An error occurred...]"];
-        this.showNextDialog();
-        return;
-      }
+      // Get monster data from LLM
+      const monsterData = await this.requestMonsterFromLLM();
       
-      this.showDialog = true;
-      this.dialogQueue = [];
+      // Generate monster sprite
+      const spriteUrl = await this.generateMonsterSprite(monsterData.description);
       
-      const dialog = this.currentMonster.dialog;
+      this.currentMonster = {
+        name: monsterData.name,
+        hp: monsterData.hp,
+        maxHp: monsterData.hp,
+        attack: monsterData.attack,
+        defense: monsterData.defense,
+        spriteUrl: spriteUrl,
+        canSpare: false,
+        spareCondition: monsterData.spareCondition,
+        actions: monsterData.actions,
+        bulletPatterns: monsterData.bulletPatterns,
+        dialog: monsterData.dialog
+      };
       
-      switch (type) {
-        case 'intro':
-          this.dialogQueue = Array.isArray(dialog.intro) ? [...dialog.intro] : ["* You encountered the monster!"];
-          break;
-        case 'fight':
-          this.dialogQueue = Array.isArray(dialog.fight) ? [...dialog.fight] : ["* The monster prepares to attack."];
-          break;
-        case 'act':
-          if (actionName && dialog.act && dialog.act[actionName]) {
-            this.dialogQueue = Array.isArray(dialog.act[actionName]) ? [...dialog.act[actionName]] : ["* Nothing happened."];
-          } else {
-            this.dialogQueue = ["* Nothing happened."];
-          }
-          break;
-        case 'spare':
-          this.dialogQueue = Array.isArray(dialog.spare) ? [...dialog.spare] : ["* You spared the monster."];
-          break;
-        case 'defeat':
-          this.dialogQueue = Array.isArray(dialog.defeat) ? [...dialog.defeat] : ["* The monster was defeated."];
-          break;
-        default:
-          this.dialogQueue = ["* [Unknown dialog type]"];
-      }
-      
-      this.showNextDialog();
+      // Show introduction dialog
+      this.showMonsterDialog('intro');
     },
     
     async requestMonsterFromLLM() {
@@ -225,7 +133,7 @@ const app = createApp({
             }
           ],
           dialog: {
-            intro: ["First meeting dialog line", "Second intro line"],
+            intro: ["First meeting dialog line"],
             fight: ["During fight dialog lines"],
             act: {
               "action1Name": ["Response to specific action"],
@@ -242,7 +150,7 @@ const app = createApp({
           messages: [
             {
               role: "system",
-              content: "You are an Undertale-style game content generator. Create unique, creative content in the style of Undertale. Always return complete JSON with all the requested fields."
+              content: "You are an Undertale-style game content generator. Create unique, creative content in the style of Undertale."
             },
             {
               role: "user",
@@ -252,61 +160,42 @@ const app = createApp({
           json: true
         });
         
-        let monsterData;
-        try {
-          monsterData = JSON.parse(completion.content);
-        } catch (parseError) {
-          console.error("Error parsing LLM response:", parseError);
-          // Return fallback monster data if parsing fails
-          return this.getFallbackMonster();
-        }
-        
-        // Validate that critical fields exist, use fallback if not
-        if (!monsterData || !monsterData.name || !monsterData.description) {
-          console.error("Invalid monster data from LLM");
-          return this.getFallbackMonster();
-        }
-        
-        return monsterData;
+        return JSON.parse(completion.content);
       } catch (error) {
         console.error("Error generating monster:", error);
-        return this.getFallbackMonster();
-      }
-    },
-    
-    getFallbackMonster() {
-      // Fallback monster in case the LLM request fails
-      return {
-        name: "Fallback Monster",
-        description: "A simple white monster with a friendly smile",
-        hp: 20 * this.player.lv,
-        attack: 2 * this.player.lv,
-        defense: this.player.lv,
-        spareCondition: "Compliment three times",
-        actions: [
-          { name: "Check", description: "See monster stats", effect: null },
-          { name: "Compliment", description: "Say something nice", effect: "increase spare chance" }
-        ],
-        bulletPatterns: [
-          {
-            name: "Basic Pattern",
-            description: "Simple white bullets that move downward",
-            difficulty: 2,
-            bulletTypes: ["normal"],
-            movements: "Straight down"
+        // Fallback monster in case the LLM request fails
+        return {
+          name: "Fallback Monster",
+          description: "A simple white monster with a friendly smile",
+          hp: 20 * this.player.lv,
+          attack: 2 * this.player.lv,
+          defense: this.player.lv,
+          spareCondition: "Compliment three times",
+          actions: [
+            { name: "Check", description: "See monster stats", effect: null },
+            { name: "Compliment", description: "Say something nice", effect: "increase spare chance" }
+          ],
+          bulletPatterns: [
+            {
+              name: "Basic Pattern",
+              description: "Simple white bullets that move downward",
+              difficulty: 2,
+              bulletTypes: ["normal"],
+              movements: "Straight down"
+            }
+          ],
+          dialog: {
+            intro: ["* A wild monster appears!"],
+            fight: ["* Monster looks worried."],
+            act: {
+              "Check": ["* FALLBACK MONSTER - ATK " + (2 * this.player.lv) + " DEF " + this.player.lv],
+              "Compliment": ["* You said something nice.", "* Monster seems happier."]
+            },
+            spare: ["* Thank you for sparing me!"],
+            defeat: ["* Why..."]
           }
-        ],
-        dialog: {
-          intro: ["* A wild monster appears!"],
-          fight: ["* Monster looks worried."],
-          act: {
-            "Check": ["* FALLBACK MONSTER - ATK " + (2 * this.player.lv) + " DEF " + this.player.lv],
-            "Compliment": ["* You said something nice.", "* Monster seems happier."]
-          },
-          spare: ["* Thank you for sparing me!"],
-          defeat: ["* Why..."]
-        }
-      };
+        };
+      }
     },
     
     async generateMonsterSprite(description) {
@@ -322,6 +211,25 @@ const app = createApp({
         // Return a default sprite if generation fails
         return "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0id2hpdGUiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSIzMCIgZmlsbD0id2hpdGUiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMiIvPjxjaXJjbGUgY3g9IjM1IiBjeT0iNDAiIHI9IjUiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iNjUiIGN5PSI0MCIgcj0iNSIgZmlsbD0iYmxhY2siLz48cGF0aCBkPSJNMzAgNjUgUTUwIDgwIDcwIDY1IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz48L3N2Zz4=";
       }
+    },
+    
+    showMonsterDialog(type, actionName = null) {
+      this.showDialog = true;
+      this.dialogQueue = [];
+      
+      if (type === 'intro') {
+        this.dialogQueue = [...this.currentMonster.dialog.intro];
+      } else if (type === 'fight') {
+        this.dialogQueue = [...this.currentMonster.dialog.fight];
+      } else if (type === 'act' && actionName) {
+        this.dialogQueue = [...(this.currentMonster.dialog.act[actionName] || ["* Nothing happened."])];
+      } else if (type === 'spare') {
+        this.dialogQueue = [...this.currentMonster.dialog.spare];
+      } else if (type === 'defeat') {
+        this.dialogQueue = [...this.currentMonster.dialog.defeat];
+      }
+      
+      this.showNextDialog();
     },
     
     showNextDialog() {
@@ -413,6 +321,74 @@ const app = createApp({
       }
     },
     
+    startFightAction() {
+      this.battleState = 'fightAction';
+      this.attackLinePosition = 0;
+      this.attackDirection = 1;
+      
+      const attackInterval = setInterval(() => {
+        this.attackLinePosition += this.attackSpeed * this.attackDirection;
+        
+        if (this.attackLinePosition >= 100) {
+          this.attackDirection = -1;
+        } else if (this.attackLinePosition <= 0) {
+          this.attackDirection = 1;
+        }
+      }, 16);
+      
+      const handleAttack = (e) => {
+        if (e.key === 'z') {
+          clearInterval(attackInterval);
+          window.removeEventListener('keydown', handleAttack);
+          
+          // Calculate damage based on how close to center the attack bar is
+          const centerDistance = Math.abs(this.attackLinePosition - 50);
+          let damageMultiplier = 1;
+          
+          if (centerDistance < 5) {
+            damageMultiplier = 2; // Critical hit
+          } else if (centerDistance < 15) {
+            damageMultiplier = 1.5; // Good hit
+          } else if (centerDistance < 25) {
+            damageMultiplier = 1; // Normal hit
+          } else {
+            damageMultiplier = 0.5; // Bad hit
+          }
+          
+          const damage = Math.floor(this.player.lv * 5 * damageMultiplier);
+          this.currentMonster.hp -= damage;
+          
+          this.showDialog = true;
+          
+          if (damageMultiplier >= 2) {
+            this.dialogQueue = [`* Critical hit! You deal ${damage} damage!`];
+          } else if (damageMultiplier >= 1.5) {
+            this.dialogQueue = [`* Good hit! You deal ${damage} damage!`];
+          } else if (damageMultiplier >= 1) {
+            this.dialogQueue = [`* You deal ${damage} damage.`];
+          } else {
+            this.dialogQueue = [`* Weak hit. You deal only ${damage} damage.`];
+          }
+          
+          this.showNextDialog();
+          
+          if (this.currentMonster.hp <= 0) {
+            this.currentMonster.hp = 0;
+            this.showMonsterDialog('defeat');
+            setTimeout(() => {
+              this.endBattle('defeat');
+            }, 2000);
+          } else {
+            setTimeout(() => {
+              this.startEnemyTurn();
+            }, 2000);
+          }
+        }
+      };
+      
+      window.addEventListener('keydown', handleAttack);
+    },
+    
     startEnemyTurn() {
       this.battleState = 'bulletHell';
       this.showDialog = false;
@@ -423,6 +399,205 @@ const app = createApp({
         const rect = bulletHellEl.getBoundingClientRect();
         this.soul.x = rect.width / 2 - 8; // Center the 16px soul
         this.soul.y = rect.height / 2 - 8;
+      }
+      
+      this.bullets = [];
+      
+      // Select a random bullet pattern
+      const pattern = this.selectBulletPattern();
+      
+      // Generate the bullet pattern
+      this.generateBulletPattern(pattern);
+      
+      // End enemy turn after a set duration
+      setTimeout(() => {
+        this.clearBulletHell();
+        this.battleState = 'menu';
+        this.selectedAction = null;
+      }, 5000); // 5 seconds of bullet hell
+    },
+    
+    selectBulletPattern() {
+      if (this.currentMonster.bulletPatterns && this.currentMonster.bulletPatterns.length > 0) {
+        return this.currentMonster.bulletPatterns[Math.floor(Math.random() * this.currentMonster.bulletPatterns.length)];
+      }
+      
+      // Default pattern if none defined
+      return {
+        name: "Default Pattern",
+        description: "Simple bullets from top to bottom",
+        difficulty: 2,
+        bulletTypes: ["normal"],
+        movements: "Straight down"
+      };
+    },
+    
+    async generateBulletPattern(pattern) {
+      // Request bullet pattern generation from LLM
+      try {
+        const prompt = {
+          task: "generate_bullet_pattern",
+          pattern: pattern,
+          bulletHellWidth: 320,
+          bulletHellHeight: 150,
+          playerLevel: this.player.lv,
+          requestStructure: {
+            bullets: [
+              {
+                x: "starting x position",
+                y: "starting y position",
+                width: "bullet width",
+                height: "bullet height",
+                type: "normal/blue/orange",
+                velocityX: "x velocity (can be negative)",
+                velocityY: "y velocity (can be negative)",
+                accelerationX: "optional x acceleration",
+                accelerationY: "optional y acceleration"
+              }
+            ]
+          }
+        };
+        
+        const completion = await websim.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content: "You are an Undertale-style bullet hell pattern generator. Create patterns that are challenging but fair."
+            },
+            {
+              role: "user",
+              content: JSON.stringify(prompt)
+            }
+          ],
+          json: true
+        });
+        
+        const bulletData = JSON.parse(completion.content);
+        
+        // Set up the bullet pattern
+        this.bullets = bulletData.bullets.map(bullet => ({
+          ...bullet,
+          velocityX: bullet.velocityX || 0,
+          velocityY: bullet.velocityY || 0,
+          accelerationX: bullet.accelerationX || 0,
+          accelerationY: bullet.accelerationY || 0
+        }));
+        
+      } catch (error) {
+        console.error("Error generating bullet pattern:", error);
+        // Fallback simple bullet pattern
+        this.generateDefaultBulletPattern();
+      }
+      
+      // Start bullet animation
+      this.bulletHellTimer = setInterval(() => {
+        this.updateBulletHell();
+      }, 16); // ~60fps
+    },
+    
+    generateDefaultBulletPattern() {
+      // Create a simple pattern with bullets coming from the top
+      const bulletCount = 5 + Math.floor(this.player.lv / 2);
+      
+      for (let i = 0; i < bulletCount; i++) {
+        this.bullets.push({
+          x: Math.random() * 300,
+          y: -20,
+          width: 10,
+          height: 10,
+          type: 'normal',
+          velocityX: 0,
+          velocityY: 1 + Math.random() * 2,
+          accelerationX: 0,
+          accelerationY: 0
+        });
+      }
+    },
+    
+    updateBulletHell() {
+      // Update soul position based on keyboard input
+      const speed = this.soul.speed;
+      
+      if (this.keys.up) this.soul.y = Math.max(0, this.soul.y - speed);
+      if (this.keys.down) this.soul.y = Math.min(134, this.soul.y + speed);
+      if (this.keys.left) this.soul.x = Math.max(0, this.soul.x - speed);
+      if (this.keys.right) this.soul.x = Math.min(304, this.soul.x + speed);
+      
+      // Update bullet positions
+      this.bullets.forEach(bullet => {
+        // Apply acceleration
+        bullet.velocityX += bullet.accelerationX;
+        bullet.velocityY += bullet.accelerationY;
+        
+        // Update position
+        bullet.x += bullet.velocityX;
+        bullet.y += bullet.velocityY;
+        
+        // Check collision with soul
+        if (this.checkCollision(bullet)) {
+          this.handleBulletCollision(bullet);
+        }
+      });
+      
+      // Remove bullets that are out of bounds
+      this.bullets = this.bullets.filter(bullet => 
+        bullet.x > -50 && bullet.x < 370 && 
+        bullet.y > -50 && bullet.y < 200
+      );
+    },
+    
+    checkCollision(bullet) {
+      // Simple AABB collision detection
+      return (
+        this.soul.x < bullet.x + bullet.width &&
+        this.soul.x + 16 > bullet.x &&
+        this.soul.y < bullet.y + bullet.height &&
+        this.soul.y + 16 > bullet.y
+      );
+    },
+    
+    handleBulletCollision(bullet) {
+      // Blue bullets only hurt you if you're moving
+      if (bullet.type === 'blue' && 
+          !this.keys.up && !this.keys.down && 
+          !this.keys.left && !this.keys.right) {
+        return;
+      }
+      
+      // Orange bullets only hurt you if you're NOT moving
+      if (bullet.type === 'orange' && 
+          (this.keys.up || this.keys.down || 
+           this.keys.left || this.keys.right)) {
+        return;
+      }
+      
+      // Apply damage
+      this.player.hp -= 1;
+      
+      // Play hit sound
+      // this.playSound('hit'); // Would require sound implementation
+      
+      // Flash the soul
+      const soulEl = this.$refs.soulElement;
+      if (soulEl) {
+        soulEl.style.opacity = 0.5;
+        setTimeout(() => {
+          soulEl.style.opacity = 1;
+        }, 100);
+      }
+      
+      // Check for game over
+      if (this.player.hp <= 0) {
+        this.player.hp = 0;
+        this.clearBulletHell();
+        this.currentScreen = 'gameOver';
+      }
+    },
+    
+    clearBulletHell() {
+      if (this.bulletHellTimer) {
+        clearInterval(this.bulletHellTimer);
+        this.bulletHellTimer = null;
       }
     },
     
@@ -471,10 +646,6 @@ const app = createApp({
       }
     },
     
-    startFightAction() {
-      this.fightSystem.startFightAction();
-    },
-    
     handleKeyDown(e) {
       switch (e.key.toLowerCase()) {
         case 'arrowup':
@@ -494,9 +665,11 @@ const app = createApp({
           this.keys.right = true;
           break;
         case 'z':
+          this.keys.z = true;
           if (this.showDialog && this.dialogComplete) {
             this.showNextDialog();
             
+            // If no more dialogs, close dialog box and continue game flow
             if (this.dialogQueue.length === 0) {
               setTimeout(() => {
                 this.showDialog = false;
@@ -512,6 +685,8 @@ const app = createApp({
                 }
               }, 500);
             }
+          } else if (this.selectedAction === 'fight' && !this.showDialog) {
+            this.startFightAction();
           }
           break;
         case 'x':
@@ -548,12 +723,9 @@ const app = createApp({
           this.keys.x = false;
           break;
       }
-    },
-    
-    attackLinePosition() {
-      return this.fightSystem ? this.fightSystem.getAttackLinePosition() : 0;
-    },
+    }
   }
 });
 
 app.mount('#app');
+

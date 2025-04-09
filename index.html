@@ -19,15 +19,71 @@
         <div v-if="currentScreen === 'title'" class="screen title-screen">
             <h1 class="game-title">INFATALE</h1>
             <p class="subtitle">An Infinite Undertale Experience</p>
-            <button @click="startGame" class="start-button">START</button>
+            <div class="menu-options">
+                <button @click="startNewGame" class="menu-button">NEW GAME</button>
+                <button @click="loadGame" class="menu-button" :disabled="!hasSavedGame">CONTINUE</button>
+                <button @click="showOptions = true" class="menu-button">OPTIONS</button>
+            </div>
             <div class="credits">Created with AI assistance</div>
+        </div>
+
+        <!-- OPTIONS OVERLAY -->
+        <div v-if="showOptions" class="options-overlay">
+            <div class="options-panel">
+                <h2>OPTIONS</h2>
+                <div class="option-row">
+                    <span>Music Volume</span>
+                    <input type="range" v-model="settings.musicVolume" min="0" max="100">
+                    <span>{{ settings.musicVolume }}%</span>
+                </div>
+                <div class="option-row">
+                    <span>Sound Volume</span>
+                    <input type="range" v-model="settings.soundVolume" min="0" max="100">
+                    <span>{{ settings.soundVolume }}%</span>
+                </div>
+                <div class="option-row">
+                    <span>Difficulty</span>
+                    <select v-model="settings.difficulty">
+                        <option value="easy">Easy</option>
+                        <option value="normal">Normal</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+                <button @click="saveSettings" class="menu-button">SAVE</button>
+                <button @click="showOptions = false" class="menu-button">CLOSE</button>
+            </div>
+        </div>
+
+        <!-- OVERWORLD SCREEN -->
+        <div v-if="currentScreen === 'overworld'" class="screen overworld-screen">
+            <div class="overworld-area" :class="currentArea.type">
+                <div class="player-character" 
+                     :style="{ left: player.x + 'px', top: player.y + 'px' }"></div>
+                
+                <div v-for="(object, idx) in currentArea.objects" :key="idx"
+                     class="overworld-object" :class="object.type"
+                     :style="{ left: object.x + 'px', top: object.y + 'px' }"></div>
+                
+                <div v-for="(npc, idx) in currentArea.npcs" :key="'npc'+idx"
+                     class="npc" :class="npc.type"
+                     :style="{ left: npc.x + 'px', top: npc.y + 'px' }"></div>
+            </div>
+            
+            <div class="dialog-box" v-if="showDialog">
+                <div class="dialog-text" v-html="currentDialog"></div>
+                <div class="dialog-continue" v-if="dialogComplete">* Press Z to continue</div>
+            </div>
+            
+            <div class="save-point-prompt" v-if="nearSavePoint">
+                * Press Z to SAVE
+            </div>
         </div>
 
         <!-- BATTLE SCREEN -->
         <div v-if="currentScreen === 'battle'" class="screen battle-screen">
             <div class="monster-area">
                 <div class="monster" v-if="currentMonster">
-                    <div class="monster-sprite" v-if="currentMonster.spriteUrl" :style="{ backgroundImage: `url(${currentMonster.spriteUrl})` }"></div>
+                    <div class="monster-sprite" :style="{ backgroundImage: `url(${currentMonster.spriteUrl})` }"></div>
                 </div>
             </div>
             
@@ -89,6 +145,26 @@
             </div>
         </div>
 
+        <!-- SAVE SCREEN -->
+        <div v-if="currentScreen === 'save'" class="screen save-screen">
+            <div class="save-panel">
+                <h2>SAVE</h2>
+                <div class="save-info">
+                    <div class="save-location">{{ currentArea.name }}</div>
+                    <div class="save-player">
+                        <span>{{ player.name }}</span>
+                        <span>LV {{ player.lv }}</span>
+                        <span>HP {{ player.hp }}/{{ player.maxHp }}</span>
+                    </div>
+                    <div class="save-time">{{ playTime }}</div>
+                </div>
+                <div class="save-actions">
+                    <button @click="saveGame" class="save-button">SAVE</button>
+                    <button @click="currentScreen = 'overworld'" class="save-button">RETURN</button>
+                </div>
+            </div>
+        </div>
+
         <!-- GAME OVER SCREEN -->
         <div v-if="currentScreen === 'gameOver'" class="screen game-over-screen">
             <h2>GAME OVER</h2>
@@ -97,7 +173,7 @@
         </div>
     </div>
     
-    <script type="module" src="main.js"></script>
+    <script type="module" src="js/main.js"></script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4c6229722a6346bc8eb5cb0e5eae5d41","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>
