@@ -59,7 +59,7 @@ const app = createApp({
     window.addEventListener('keyup', this.handleKeyUp);
   },
   
-  destroyed() {
+  unmounted() {
     window.removeEventListener('keydown', this.handleKeyDown);
     window.removeEventListener('keyup', this.handleKeyUp);
     this.clearBulletHell();
@@ -574,15 +574,14 @@ const app = createApp({
       // Apply damage
       this.player.hp -= 1;
       
-      // Play hit sound
-      // this.playSound('hit'); // Would require sound implementation
-      
       // Flash the soul
       const soulEl = this.$refs.soulElement;
       if (soulEl) {
         soulEl.style.opacity = 0.5;
         setTimeout(() => {
-          soulEl.style.opacity = 1;
+          if (soulEl) { 
+            soulEl.style.opacity = 1;
+          }
         }, 100);
       }
       
@@ -728,4 +727,3 @@ const app = createApp({
 });
 
 app.mount('#app');
-
