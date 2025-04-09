@@ -31,7 +31,6 @@ body {
   height: 480px;
   position: relative;
   border: 1px solid #333;
-  overflow: hidden;
 }
 
 .screen {
@@ -87,11 +86,61 @@ body {
   opacity: 0.6;
 }
 
-.menu-options {
+/* OVERWORLD SCREEN */
+.overworld-screen {
+  background-color: #000;
+}
+
+.overworld-area {
+  width: 100%;
+  height: 85%;
+  position: relative;
+  overflow: hidden;
+}
+
+.overworld-area.ruins {
+  background-color: #4b0082;
+}
+
+.overworld-area.snowdin {
+  background-color: #e0f0ff;
+}
+
+.overworld-area.waterfall {
+  background-color: #000030;
+}
+
+.player-character {
+  position: absolute;
+  width: 32px;
+  height: 48px;
+  background-color: #ff0000;
+  z-index: 10;
+}
+
+.obstacle {
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.area-exit {
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px dashed rgba(255, 255, 255, 0.3);
+}
+
+.overworld-ui {
+  height: 15%;
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  gap: 10px;
+  padding: 0 20px;
+  background-color: #000;
+  border-top: 1px solid #333;
+}
+
+.area-name {
+  font-size: 18px;
 }
 
 .menu-button {
@@ -99,209 +148,107 @@ body {
   border: none;
   color: white;
   font-family: 'Determination', sans-serif;
-  font-size: 24px;
+  font-size: 18px;
   cursor: pointer;
-  padding: 10px 20px;
-  transition: all 0.3s;
-  width: 200px;
-  text-align: center;
 }
 
-.menu-button:hover {
-  color: yellow;
-  text-shadow: 0 0 5px rgba(255, 255, 0, 0.7);
-}
-
-.menu-button:disabled {
-  color: #555;
-  cursor: not-allowed;
-  text-shadow: none;
-}
-
-/* OPTIONS OVERLAY */
-.options-overlay {
+.dialog-container {
   position: absolute;
-  top: 0;
+  bottom: 15%;
   left: 0;
   width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.7);
+  padding: 0 20px;
+}
+
+/* MENU SCREEN */
+.menu-screen {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 100;
+  background-color: rgba(0, 0, 0, 0.9);
 }
 
-.options-panel {
+.menu-container {
+  width: 80%;
+  height: 80%;
   background-color: #000;
   border: 4px solid white;
   padding: 20px;
-  width: 80%;
-  max-width: 400px;
-}
-
-.option-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 15px 0;
-}
-
-.option-row input, .option-row select {
-  background-color: #000;
-  color: white;
-  border: 2px solid white;
-  padding: 5px;
-  font-family: 'Determination', sans-serif;
-}
-
-/* OVERWORLD SCREEN */
-.overworld-screen {
   display: flex;
   flex-direction: column;
 }
 
-.overworld-area {
-  height: 100%;
-  width: 100%;
-  position: relative;
-  overflow: hidden;
+.menu-container h2 {
+  text-align: center;
+  margin-bottom: 20px;
 }
 
-.overworld-area.ruins {
-  background-color: #351431;
-}
-
-.overworld-area.snowdin {
-  background-color: #102033;
-}
-
-.overworld-area.waterfall {
-  background-color: #0a1a2a;
-}
-
-.player-character {
-  position: absolute;
-  width: 24px;
-  height: 36px;
-  background-color: red;
-  z-index: 10;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='36' viewBox='0 0 24 36'%3E%3Crect width='24' height='36' fill='none'/%3E%3Cellipse cx='12' cy='10' rx='7' ry='7' fill='%23F8B195'/%3E%3Crect x='6' y='17' width='12' height='15' fill='%230A3B76'/%3E%3Crect x='4' y='15' width='16' height='4' fill='%230A3B76'/%3E%3C/svg%3E");
-  background-size: contain;
-  background-repeat: no-repeat;
-}
-
-.overworld-object {
-  position: absolute;
-  width: 32px;
-  height: 32px;
-}
-
-.overworld-object.wall {
-  background-color: #555;
-}
-
-.overworld-object.save {
-  background-color: yellow;
-  animation: pulse 2s infinite;
-  width: 16px;
-  height: 16px;
-}
-
-.npc {
-  position: absolute;
-  width: 30px;
-  height: 40px;
-  background-color: white;
-}
-
-.dialog-box {
-  border: 4px solid white;
-  background-color: black;
-  padding: 10px;
-  margin: 10px;
-  min-height: 100px;
-  font-family: 'DTM-Mono', monospace;
-  position: relative;
-  z-index: 20;
-}
-
-.dialog-text {
-  font-size: 18px;
-  line-height: 1.4;
-}
-
-.dialog-continue {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  animation: blink 1s infinite;
-}
-
-.save-point-prompt {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: yellow;
-  animation: blink 1s infinite;
-  z-index: 15;
-}
-
-/* SAVE SCREEN */
-.save-screen {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: rgba(0,0,0,0.7);
-}
-
-.save-panel {
-  border: 4px solid white;
-  background-color: black;
-  padding: 20px;
-  width: 80%;
-  max-width: 400px;
-}
-
-.save-info {
-  margin: 20px 0;
-}
-
-.save-location {
-  font-size: 24px;
-  margin-bottom: 10px;
-}
-
-.save-player {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.save-time {
-  text-align: right;
-}
-
-.save-actions {
+.menu-tabs {
   display: flex;
   justify-content: space-around;
-  margin-top: 20px;
+  margin-bottom: 20px;
 }
 
-.save-button {
+.menu-tabs button {
   background: none;
-  border: 2px solid white;
+  border: none;
   color: white;
   font-family: 'Determination', sans-serif;
-  font-size: 20px;
-  padding: 5px 15px;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 5px 10px;
+}
+
+.menu-tabs button.active {
+  color: yellow;
+  text-decoration: underline;
+}
+
+.menu-content {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 20px;
+  padding: 10px;
+  border: 2px solid #333;
+}
+
+.player-full-stats {
+  line-height: 1.5;
+}
+
+.inventory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inventory-item {
+  display: flex;
+  justify-content: space-between;
+}
+
+.item-description {
+  color: #aaa;
+  font-size: 14px;
+}
+
+.cell-phone .contact {
+  padding: 5px 0;
   cursor: pointer;
 }
 
-.save-button:hover {
+.cell-phone .contact:hover {
   color: yellow;
-  border-color: yellow;
+}
+
+.back-button {
+  align-self: center;
+  background: none;
+  border: none;
+  color: white;
+  font-family: 'Determination', sans-serif;
+  font-size: 18px;
+  cursor: pointer;
 }
 
 /* BATTLE SCREEN */
@@ -533,11 +480,6 @@ body {
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.9); }
 }
 
 @keyframes breakSoul {
