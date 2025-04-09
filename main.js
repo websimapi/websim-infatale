@@ -82,25 +82,76 @@ const app = createApp({
       // Get monster data from LLM
       const monsterData = await this.requestMonsterFromLLM();
       
+      // Ensure dialog structure exists with fallbacks
+      const dialogData = monsterData.dialog || {};
+      const safeDialog = {
+        intro: Array.isArray(dialogData.intro) ? dialogData.intro : ["* A monster appears!"],
+        fight: Array.isArray(dialogData.fight) ? dialogData.fight : ["* The monster looks determined."],
+        act: dialogData.act || {},
+        spare: Array.isArray(dialogData.spare) ? dialogData.spare : ["* The monster was spared."],
+        defeat: Array.isArray(dialogData.defeat) ? dialogData.defeat : ["* The monster was defeated."]
+      };
+      
       // Generate monster sprite
       const spriteUrl = await this.generateMonsterSprite(monsterData.description);
       
       this.currentMonster = {
-        name: monsterData.name,
-        hp: monsterData.hp,
-        maxHp: monsterData.hp,
-        attack: monsterData.attack,
-        defense: monsterData.defense,
+        name: monsterData.name || "Mystery Monster",
+        hp: monsterData.hp || 20,
+        maxHp: monsterData.hp || 20,
+        attack: monsterData.attack || 2,
+        defense: monsterData.defense || 1,
         spriteUrl: spriteUrl,
         canSpare: false,
-        spareCondition: monsterData.spareCondition,
-        actions: monsterData.actions,
-        bulletPatterns: monsterData.bulletPatterns,
-        dialog: monsterData.dialog
+        spareCondition: monsterData.spareCondition || "Complete certain actions",
+        actions: Array.isArray(monsterData.actions) ? monsterData.actions : [
+          { name: "Check", description: "See monster stats", effect: null }
+        ],
+        bulletPatterns: Array.isArray(monsterData.bulletPatterns) ? monsterData.bulletPatterns : [
+          {
+            name: "Default Pattern",
+            description: "Simple bullets from top to bottom",
+            difficulty: 2,
+            bulletTypes: ["normal"],
+            movements: "Straight down"
+          }
+        ],
+        dialog: safeDialog
       };
       
       // Show introduction dialog
       this.showMonsterDialog('intro');
+    },
+    
+    showMonsterDialog(type, actionName = null) {
+      this.showDialog = true;
+      this.dialogQueue = [];
+      
+      // Safe guards against undefined dialog properties
+      if (!this.currentMonster || !this.currentMonster.dialog) {
+        this.dialogQueue = ["* [Dialog error: No dialog available]"];
+        this.showNextDialog();
+        return;
+      }
+      
+      const dialog = this.currentMonster.dialog;
+      
+      if (type === 'intro') {
+        this.dialogQueue = Array.isArray(dialog.intro) ? [...dialog.intro] : ["* You encountered the monster!"];
+      } else if (type === 'fight') {
+        this.dialogQueue = Array.isArray(dialog.fight) ? [...dialog.fight] : ["* The monster prepares to attack."];
+      } else if (type === 'act' && actionName) {
+        const actResponse = dialog.act && dialog.act[actionName];
+        this.dialogQueue = Array.isArray(actResponse) ? [...actResponse] : ["* Nothing happened."];
+      } else if (type === 'spare') {
+        this.dialogQueue = Array.isArray(dialog.spare) ? [...dialog.spare] : ["* You spared the monster."];
+      } else if (type === 'defeat') {
+        this.dialogQueue = Array.isArray(dialog.defeat) ? [...dialog.defeat] : ["* The monster was defeated."];
+      } else {
+        this.dialogQueue = ["* [Unknown dialog type]"];
+      }
+      
+      this.showNextDialog();
     },
     
     async requestMonsterFromLLM() {
@@ -133,7 +184,7 @@ const app = createApp({
             }
           ],
           dialog: {
-            intro: ["First meeting dialog line"],
+            intro: ["First meeting dialog line", "Second intro line"],
             fight: ["During fight dialog lines"],
             act: {
               "action1Name": ["Response to specific action"],
@@ -150,7 +201,7 @@ const app = createApp({
           messages: [
             {
               role: "system",
-              content: "You are an Undertale-style game content generator. Create unique, creative content in the style of Undertale."
+              content: "You are an Undertale-style game content generator. Create unique, creative content in the style of Undertale. Always return complete JSON with all the requested fields."
             },
             {
               role: "user",
@@ -160,42 +211,61 @@ const app = createApp({
           json: true
         });
         
-        return JSON.parse(completion.content);
+        let monsterData;
+        try {
+          monsterData = JSON.parse(completion.content);
+        } catch (parseError) {
+          console.error("Error parsing LLM response:", parseError);
+          // Return fallback monster data if parsing fails
+          return this.getFallbackMonster();
+        }
+        
+        // Validate that critical fields exist, use fallback if not
+        if (!monsterData || !monsterData.name || !monsterData.description) {
+          console.error("Invalid monster data from LLM");
+          return this.getFallbackMonster();
+        }
+        
+        return monsterData;
       } catch (error) {
         console.error("Error generating monster:", error);
-        // Fallback monster in case the LLM request fails
-        return {
-          name: "Fallback Monster",
-          description: "A simple white monster with a friendly smile",
-          hp: 20 * this.player.lv,
-          attack: 2 * this.player.lv,
-          defense: this.player.lv,
-          spareCondition: "Compliment three times",
-          actions: [
-            { name: "Check", description: "See monster stats", effect: null },
-            { name: "Compliment", description: "Say something nice", effect: "increase spare chance" }
-          ],
-          bulletPatterns: [
-            {
-              name: "Basic Pattern",
-              description: "Simple white bullets that move downward",
-              difficulty: 2,
-              bulletTypes: ["normal"],
-              movements: "Straight down"
-            }
-          ],
-          dialog: {
-            intro: ["* A wild monster appears!"],
-            fight: ["* Monster looks worried."],
-            act: {
-              "Check": ["* FALLBACK MONSTER - ATK " + (2 * this.player.lv) + " DEF " + this.player.lv],
-              "Compliment": ["* You said something nice.", "* Monster seems happier."]
-            },
-            spare: ["* Thank you for sparing me!"],
-            defeat: ["* Why..."]
-          }
-        };
+        return this.getFallbackMonster();
       }
+    },
+    
+    getFallbackMonster() {
+      // Fallback monster in case the LLM request fails
+      return {
+        name: "Fallback Monster",
+        description: "A simple white monster with a friendly smile",
+        hp: 20 * this.player.lv,
+        attack: 2 * this.player.lv,
+        defense: this.player.lv,
+        spareCondition: "Compliment three times",
+        actions: [
+          { name: "Check", description: "See monster stats", effect: null },
+          { name: "Compliment", description: "Say something nice", effect: "increase spare chance" }
+        ],
+        bulletPatterns: [
+          {
+            name: "Basic Pattern",
+            description: "Simple white bullets that move downward",
+            difficulty: 2,
+            bulletTypes: ["normal"],
+            movements: "Straight down"
+          }
+        ],
+        dialog: {
+          intro: ["* A wild monster appears!"],
+          fight: ["* Monster looks worried."],
+          act: {
+            "Check": ["* FALLBACK MONSTER - ATK " + (2 * this.player.lv) + " DEF " + this.player.lv],
+            "Compliment": ["* You said something nice.", "* Monster seems happier."]
+          },
+          spare: ["* Thank you for sparing me!"],
+          defeat: ["* Why..."]
+        }
+      };
     },
     
     async generateMonsterSprite(description) {
@@ -211,25 +281,6 @@ const app = createApp({
         // Return a default sprite if generation fails
         return "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0id2hpdGUiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSIzMCIgZmlsbD0id2hpdGUiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMiIvPjxjaXJjbGUgY3g9IjM1IiBjeT0iNDAiIHI9IjUiIGZpbGw9ImJsYWNrIi8+PGNpcmNsZSBjeD0iNjUiIGN5PSI0MCIgcj0iNSIgZmlsbD0iYmxhY2siLz48cGF0aCBkPSJNMzAgNjUgUTUwIDgwIDcwIDY1IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz48L3N2Zz4=";
       }
-    },
-    
-    showMonsterDialog(type, actionName = null) {
-      this.showDialog = true;
-      this.dialogQueue = [];
-      
-      if (type === 'intro') {
-        this.dialogQueue = [...this.currentMonster.dialog.intro];
-      } else if (type === 'fight') {
-        this.dialogQueue = [...this.currentMonster.dialog.fight];
-      } else if (type === 'act' && actionName) {
-        this.dialogQueue = [...(this.currentMonster.dialog.act[actionName] || ["* Nothing happened."])];
-      } else if (type === 'spare') {
-        this.dialogQueue = [...this.currentMonster.dialog.spare];
-      } else if (type === 'defeat') {
-        this.dialogQueue = [...this.currentMonster.dialog.defeat];
-      }
-      
-      this.showNextDialog();
     },
     
     showNextDialog() {
