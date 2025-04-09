@@ -78,77 +78,109 @@ const app = createApp({
     
     async generateNewMonster() {
       this.monsterCount++;
+      this.showDialog = true;
+      this.dialogQueue = ["* Encountering monster..."];
+      this.showNextDialog();
       
-      // Get monster data from LLM
-      const monsterData = await this.requestMonsterFromLLM();
-      
-      // Ensure dialog structure exists with fallbacks
-      const dialogData = monsterData.dialog || {};
-      const safeDialog = {
-        intro: Array.isArray(dialogData.intro) ? dialogData.intro : ["* A monster appears!"],
-        fight: Array.isArray(dialogData.fight) ? dialogData.fight : ["* The monster looks determined."],
-        act: dialogData.act || {},
-        spare: Array.isArray(dialogData.spare) ? dialogData.spare : ["* The monster was spared."],
-        defeat: Array.isArray(dialogData.defeat) ? dialogData.defeat : ["* The monster was defeated."]
-      };
-      
-      // Generate monster sprite
-      const spriteUrl = await this.generateMonsterSprite(monsterData.description);
-      
-      this.currentMonster = {
-        name: monsterData.name || "Mystery Monster",
-        hp: monsterData.hp || 20,
-        maxHp: monsterData.hp || 20,
-        attack: monsterData.attack || 2,
-        defense: monsterData.defense || 1,
-        spriteUrl: spriteUrl,
-        canSpare: false,
-        spareCondition: monsterData.spareCondition || "Complete certain actions",
-        actions: Array.isArray(monsterData.actions) ? monsterData.actions : [
-          { name: "Check", description: "See monster stats", effect: null }
-        ],
-        bulletPatterns: Array.isArray(monsterData.bulletPatterns) ? monsterData.bulletPatterns : [
-          {
-            name: "Default Pattern",
-            description: "Simple bullets from top to bottom",
-            difficulty: 2,
-            bulletTypes: ["normal"],
-            movements: "Straight down"
-          }
-        ],
-        dialog: safeDialog
-      };
-      
-      // Show introduction dialog
-      this.showMonsterDialog('intro');
+      try {
+        // Get monster data from LLM
+        const monsterData = await this.requestMonsterFromLLM();
+        
+        if (!monsterData) {
+          throw new Error("Failed to generate monster data");
+        }
+        
+        // Generate monster sprite
+        let spriteUrl;
+        try {
+          spriteUrl = await this.generateMonsterSprite(monsterData.description);
+        } catch (spriteError) {
+          console.error("Error generating sprite:", spriteError);
+          spriteUrl = null;
+        }
+        
+        // Ensure dialog structure exists with fallbacks
+        const dialogData = monsterData.dialog || {};
+        const safeDialog = {
+          intro: Array.isArray(dialogData.intro) ? dialogData.intro : ["* A monster appears!"],
+          fight: Array.isArray(dialogData.fight) ? dialogData.fight : ["* The monster looks determined."],
+          act: dialogData.act || {},
+          spare: Array.isArray(dialogData.spare) ? dialogData.spare : ["* The monster was spared."],
+          defeat: Array.isArray(dialogData.defeat) ? dialogData.defeat : ["* The monster was defeated."]
+        };
+        
+        // Set the current monster with validated data
+        this.currentMonster = {
+          name: monsterData.name || "Mystery Monster",
+          hp: monsterData.hp || 20,
+          maxHp: monsterData.hp || 20,
+          attack: monsterData.attack || 2,
+          defense: monsterData.defense || 1,
+          spriteUrl: spriteUrl,
+          canSpare: false,
+          spareCondition: monsterData.spareCondition || "Complete certain actions",
+          actions: Array.isArray(monsterData.actions) ? monsterData.actions : [
+            { name: "Check", description: "See monster stats", effect: null }
+          ],
+          bulletPatterns: Array.isArray(monsterData.bulletPatterns) ? monsterData.bulletPatterns : [
+            {
+              name: "Default Pattern",
+              description: "Simple bullets from top to bottom",
+              difficulty: 2,
+              bulletTypes: ["normal"],
+              movements: "Straight down"
+            }
+          ],
+          dialog: safeDialog
+        };
+        
+        // Show introduction dialog only after monster is fully initialized
+        this.showMonsterDialog('intro');
+        
+      } catch (error) {
+        console.error("Error in generateNewMonster:", error);
+        // Use fallback monster if generation fails
+        this.currentMonster = this.getFallbackMonster();
+        this.showMonsterDialog('intro');
+      }
     },
     
     showMonsterDialog(type, actionName = null) {
-      this.showDialog = true;
-      this.dialogQueue = [];
-      
-      // Safe guards against undefined dialog properties
       if (!this.currentMonster || !this.currentMonster.dialog) {
-        this.dialogQueue = ["* [Dialog error: No dialog available]"];
+        console.error("Cannot show dialog - monster or dialog not initialized");
+        this.showDialog = true;
+        this.dialogQueue = ["* [An error occurred...]"];
         this.showNextDialog();
         return;
       }
       
+      this.showDialog = true;
+      this.dialogQueue = [];
+      
       const dialog = this.currentMonster.dialog;
       
-      if (type === 'intro') {
-        this.dialogQueue = Array.isArray(dialog.intro) ? [...dialog.intro] : ["* You encountered the monster!"];
-      } else if (type === 'fight') {
-        this.dialogQueue = Array.isArray(dialog.fight) ? [...dialog.fight] : ["* The monster prepares to attack."];
-      } else if (type === 'act' && actionName) {
-        const actResponse = dialog.act && dialog.act[actionName];
-        this.dialogQueue = Array.isArray(actResponse) ? [...actResponse] : ["* Nothing happened."];
-      } else if (type === 'spare') {
-        this.dialogQueue = Array.isArray(dialog.spare) ? [...dialog.spare] : ["* You spared the monster."];
-      } else if (type === 'defeat') {
-        this.dialogQueue = Array.isArray(dialog.defeat) ? [...dialog.defeat] : ["* The monster was defeated."];
-      } else {
-        this.dialogQueue = ["* [Unknown dialog type]"];
+      switch (type) {
+        case 'intro':
+          this.dialogQueue = Array.isArray(dialog.intro) ? [...dialog.intro] : ["* You encountered the monster!"];
+          break;
+        case 'fight':
+          this.dialogQueue = Array.isArray(dialog.fight) ? [...dialog.fight] : ["* The monster prepares to attack."];
+          break;
+        case 'act':
+          if (actionName && dialog.act && dialog.act[actionName]) {
+            this.dialogQueue = Array.isArray(dialog.act[actionName]) ? [...dialog.act[actionName]] : ["* Nothing happened."];
+          } else {
+            this.dialogQueue = ["* Nothing happened."];
+          }
+          break;
+        case 'spare':
+          this.dialogQueue = Array.isArray(dialog.spare) ? [...dialog.spare] : ["* You spared the monster."];
+          break;
+        case 'defeat':
+          this.dialogQueue = Array.isArray(dialog.defeat) ? [...dialog.defeat] : ["* The monster was defeated."];
+          break;
+        default:
+          this.dialogQueue = ["* [Unknown dialog type]"];
       }
       
       this.showNextDialog();
