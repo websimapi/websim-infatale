@@ -114,9 +114,10 @@ export const battleGenerationService = {
       task: "generate_monster",
       playerLevel: appContext.player.lv,
       currentArea: appContext.currentArea ? appContext.currentArea.name : "Unknown",
+      areaType: appContext.currentArea ? appContext.currentArea.type : "unknown",
       requestStructure: {
-        name: "Monster name",
-        description: "Detailed visual description for image generation",
+        name: "Monster name (thematic to the " + (appContext.currentArea ? appContext.currentArea.type : "unknown") + " area)",
+        description: "Detailed visual description for image generation, themed to match the current area",
         hp: "Monster HP value (number)",
         attack: "Attack value (number)",
         defense: "Defense value (number)",
@@ -267,39 +268,339 @@ export const battleGenerationService = {
   },
   
   getFallbackMonster(appContext) {
-    // Fallback monster in case the LLM request fails
+    // Get area-specific monster instead of generic fallback
+    const currentArea = appContext.currentArea ? appContext.currentArea.type : "ruins";
     const level = appContext.player.lv;
-    return {
-      name: "Fallback Monster",
-      description: "A simple white monster with a friendly smile",
-      hp: 20 * level,
-      attack: 2 * level,
-      defense: level,
-      spareCondition: "Compliment three times",
-      actions: [
-        { name: "Check", description: "See monster stats", effect: null },
-        { name: "Compliment", description: "Say something nice", effect: "increase spare chance" }
-      ],
-      bulletPatterns: [
-        {
-          name: "Basic Pattern",
-          description: "Simple white bullets that move downward",
-          difficulty: 2,
-          bulletTypes: ["normal"],
-          movements: "Straight down"
+    
+    // Select appropriate monster based on area
+    switch(currentArea) {
+      case 'ruins':
+        return this.getRandomRuinsMonster(level);
+      case 'snowdin':
+        return this.getRandomSnowdinMonster(level);
+      case 'waterfall':
+        return this.getRandomWaterfallMonster(level);
+      default:
+        return this.getRandomRuinsMonster(level); // Default to ruins
+    }
+  },
+  
+  getRandomRuinsMonster(level) {
+    const ruinsMonsters = [
+      {
+        name: "Froggit",
+        description: "A frog-like monster with a simple face and curious eyes. It's small but determined.",
+        hp: 20 * Math.max(1, level * 0.8),
+        attack: 2 * level,
+        defense: Math.floor(level * 0.5),
+        spareCondition: "Compliment it three times or threaten it once",
+        actions: [
+          { name: "Check", description: "See monster stats", effect: null },
+          { name: "Compliment", description: "Say something nice", effect: "increase spare chance" },
+          { name: "Threaten", description: "Scare the monster", effect: "increase spare chance" }
+        ],
+        bulletPatterns: [
+          {
+            name: "Fly Swarm",
+            description: "Small white flies that hop across the bullet box",
+            difficulty: 2,
+            bulletTypes: ["normal"],
+            movements: "Hopping arcs"
+          }
+        ],
+        dialog: {
+          intro: ["* Froggit hops into view!"],
+          fight: ["* Froggit doesn't seem to understand what's happening."],
+          act: {
+            "Check": ["* FROGGIT - ATK " + (2 * level) + " DEF " + Math.floor(level * 0.5), "* Life is difficult for this enemy."],
+            "Compliment": ["* You compliment the Froggit.", "* It didn't understand what you said, but it was flattered anyway."],
+            "Threaten": ["* You threatened the Froggit.", "* It was scared and confused."]
+          },
+          spare: ["* You won! Earned 0 EXP and " + Math.floor(10 * level) + " gold."],
+          defeat: ["* Ribbit..."]
         }
-      ],
-      dialog: {
-        intro: ["* A wild monster appears!"],
-        fight: ["* Monster looks worried."],
-        act: {
-          "Check": ["* FALLBACK MONSTER - ATK " + (2 * level) + " DEF " + level],
-          "Compliment": ["* You said something nice.", "* Monster seems happier."]
-        },
-        spare: ["* Thank you for sparing me!"],
-        defeat: ["* Why..."]
+      },
+      {
+        name: "Whimsun",
+        description: "A timid insect-like monster with butterfly wings. It's trembling and looks afraid.",
+        hp: 10 * Math.max(1, level * 0.5),
+        attack: 1 * level,
+        defense: 0,
+        spareCondition: "Console it once or simply show mercy",
+        actions: [
+          { name: "Check", description: "See monster stats", effect: null },
+          { name: "Console", description: "Comfort the monster", effect: "increase spare chance" },
+          { name: "Terrorize", description: "Scare the monster", effect: null }
+        ],
+        bulletPatterns: [
+          {
+            name: "Butterfly Flutter",
+            description: "Small butterfly-shaped bullets that fly in gentle patterns",
+            difficulty: 1,
+            bulletTypes: ["normal"],
+            movements: "Slow wavy paths"
+          }
+        ],
+        dialog: {
+          intro: ["* Whimsun appeared meekly!"],
+          fight: ["* Whimsun is trembling."],
+          act: {
+            "Check": ["* WHIMSUN - ATK " + (1 * level) + " DEF 0", "* This monster is too sensitive to fight..."],
+            "Console": ["* You tried to console Whimsun...", "* But it was scared of your words and ran away!"],
+            "Terrorize": ["* You raised your arms and waved them wildly!", "* Whimsun is terrified!"]
+          },
+          spare: ["* You won! Earned 0 EXP and " + Math.floor(5 * level) + " gold."],
+          defeat: ["* ...sorry..."]
+        }
+      },
+      {
+        name: "Loox",
+        description: "A round monster with one large eye. It has horns and appears to be frustrated.",
+        hp: 30 * Math.max(1, level * 0.9),
+        attack: 3 * level,
+        defense: level,
+        spareCondition: "Don't pick on it three times",
+        actions: [
+          { name: "Check", description: "See monster stats", effect: null },
+          { name: "Don't Pick On", description: "Be nice to Loox", effect: "increase spare chance" },
+          { name: "Pick On", description: "Make fun of Loox", effect: null }
+        ],
+        bulletPatterns: [
+          {
+            name: "Eye Orbs",
+            description: "Circular bullets that bounce around the edges",
+            difficulty: 3,
+            bulletTypes: ["normal"],
+            movements: "Bouncing, ricocheting patterns"
+          }
+        ],
+        dialog: {
+          intro: ["* Loox draws near!"],
+          fight: ["* Loox is staring right through you."],
+          act: {
+            "Check": ["* LOOX - ATK " + (3 * level) + " DEF " + level, "* Don't pick on him. Family name: Eyewalker."],
+            "Don't Pick On": ["* You finally stopped picking on Loox.", "* It seems relieved."],
+            "Pick On": ["* You pick on Loox.", "* Loox is offended you'd even consider it!"]
+          },
+          spare: ["* You won! Earned 0 EXP and " + Math.floor(15 * level) + " gold."],
+          defeat: ["* Finally someone gets it..."]
+        }
       }
-    };
+    ];
+    
+    return ruinsMonsters[Math.floor(Math.random() * ruinsMonsters.length)];
+  },
+  
+  getRandomSnowdinMonster(level) {
+    const snowdinMonsters = [
+      {
+        name: "Snowdrake",
+        description: "A bird-like monster with icy wings and a snowflake-shaped head. Loves to tell jokes.",
+        hp: 25 * Math.max(1, level * 0.85),
+        attack: 2 * level,
+        defense: Math.floor(level * 0.7),
+        spareCondition: "Laugh at its jokes three times",
+        actions: [
+          { name: "Check", description: "See monster stats", effect: null },
+          { name: "Laugh", description: "Laugh at Snowdrake's joke", effect: "increase spare chance" },
+          { name: "Heckle", description: "Make fun of Snowdrake", effect: null }
+        ],
+        bulletPatterns: [
+          {
+            name: "Snowflake Storm",
+            description: "Snowflake-shaped bullets that rotate while moving",
+            difficulty: 3,
+            bulletTypes: ["normal"],
+            movements: "Spinning, drifting patterns"
+          }
+        ],
+        dialog: {
+          intro: ["* Snowdrake flutters forth!"],
+          fight: ["* Snowdrake is practicing its comedy."],
+          act: {
+            "Check": ["* SNOWDRAKE - ATK " + (2 * level) + " DEF " + Math.floor(level * 0.7), "* This teen comedian fights to keep a captive audience."],
+            "Laugh": ["* You laugh at Snowdrake's pun.", "* Snowdrake is pleased with its 'cool' joke."],
+            "Heckle": ["* You tell Snowdrake its jokes are bad.", "* Snowdrake is determined to prove you wrong!"]
+          },
+          spare: ["* You won! Earned 0 EXP and " + Math.floor(12 * level) + " gold."],
+          defeat: ["* I guess that's... my cue... to leave..."]
+        }
+      },
+      {
+        name: "Ice Cap",
+        description: "A small monster with an enormous ice hat. Very proud of its headgear.",
+        hp: 22 * Math.max(1, level * 0.8),
+        attack: 2 * level,
+        defense: Math.floor(level * 0.8),
+        spareCondition: "Ignore it three times then compliment it",
+        actions: [
+          { name: "Check", description: "See monster stats", effect: null },
+          { name: "Compliment", description: "Praise Ice Cap's hat", effect: null },
+          { name: "Ignore", description: "Don't look at its hat", effect: "increase spare chance" }
+        ],
+        bulletPatterns: [
+          {
+            name: "Ice Crystals",
+            description: "Pointed ice shards that form and shoot outward",
+            difficulty: 3,
+            bulletTypes: ["normal"],
+            movements: "Radial patterns from center"
+          }
+        ],
+        dialog: {
+          intro: ["* Ice Cap struts into view!"],
+          fight: ["* Ice Cap makes sure its hat is still there."],
+          act: {
+            "Check": ["* ICE CAP - ATK " + (2 * level) + " DEF " + Math.floor(level * 0.8), "* This teen wonders why it isn't named 'Ice Hat.'"],
+            "Compliment": ["* You compliment Ice Cap's hat.", "* Ice Cap's hat is improved somehow...?"],
+            "Ignore": ["* You ignore Ice Cap.", "* It looks annoyed..."]
+          },
+          spare: ["* You won! Earned 0 EXP and " + Math.floor(13 * level) + " gold."],
+          defeat: ["* My hat... is still... cool..."]
+        }
+      },
+      {
+        name: "Doggo",
+        description: "A bipedal dog monster in a sentry outfit. Can only see moving things.",
+        hp: 35 * Math.max(1, level * 0.9),
+        attack: 3 * level,
+        defense: Math.floor(level * 0.7),
+        spareCondition: "Pet it once or twice",
+        actions: [
+          { name: "Check", description: "See monster stats", effect: null },
+          { name: "Pet", description: "Pet the dog", effect: "increase spare chance" },
+          { name: "Roll", description: "Roll around on the ground", effect: null }
+        ],
+        bulletPatterns: [
+          {
+            name: "Blue Dagger",
+            description: "Long blue daggers that require staying still to avoid",
+            difficulty: 4,
+            bulletTypes: ["blue"],
+            movements: "Side-to-side sweeps"
+          }
+        ],
+        dialog: {
+          intro: ["* Doggo appears!"],
+          fight: ["* Doggo can't seem to find anything."],
+          act: {
+            "Check": ["* DOGGO - ATK " + (3 * level) + " DEF " + Math.floor(level * 0.7), "* Easily excited by movement. Hobbies include: squirrels."],
+            "Pet": ["* You pet Doggo.", "* Doggo has been pet! POT? PAT? PET? PATS! PETTING INTENSIFIES!"],
+            "Roll": ["* You roll around on the ground.", "* Doggo thinks you're a weird puppy."]
+          },
+          spare: ["* You won! Earned 0 EXP and " + Math.floor(18 * level) + " gold."],
+          defeat: ["* S-something pet me... something that isn't m-moving..."]
+        }
+      }
+    ];
+    
+    return snowdinMonsters[Math.floor(Math.random() * snowdinMonsters.length)];
+  },
+  
+  getRandomWaterfallMonster(level) {
+    const waterfallMonsters = [
+      {
+        name: "Aaron",
+        description: "A muscular seahorse monster that loves to flex. Has a very confident personality.",
+        hp: 40 * Math.max(1, level * 0.9),
+        attack: 3 * level,
+        defense: Math.floor(level * 0.6),
+        spareCondition: "Flex with him three times or clean him once",
+        actions: [
+          { name: "Check", description: "See monster stats", effect: null },
+          { name: "Flex", description: "Show off your muscles", effect: "increase spare chance" },
+          { name: "Clean", description: "Wash away Aaron's sweat", effect: "increase spare chance" }
+        ],
+        bulletPatterns: [
+          {
+            name: "Flexing Arms",
+            description: "Muscular arm-shaped bullets that flex and move in waves",
+            difficulty: 4,
+            bulletTypes: ["normal"],
+            movements: "Wavy, undulating patterns"
+          }
+        ],
+        dialog: {
+          intro: ["* Aaron flexes in!"],
+          fight: ["* Aaron is splashing you with water."],
+          act: {
+            "Check": ["* AARON - ATK " + (3 * level) + " DEF " + Math.floor(level * 0.6), "* This seahorse has a lot of HP (Horsepower)."],
+            "Flex": ["* You flex your arms.", "* Aaron flexes twice as hard. ATTACK increases for both of you!"],
+            "Clean": ["* You wash away Aaron's sweat.", "* Aaron seems refreshed."]
+          },
+          spare: ["* You won! Earned 0 EXP and " + Math.floor(20 * level) + " gold."],
+          defeat: ["* Flexing... until the end..."]
+        }
+      },
+      {
+        name: "Woshua",
+        description: "A small, turtle-like cleaning monster with a bird living in the water basin on its back.",
+        hp: 28 * Math.max(1, level * 0.8),
+        attack: 2 * level,
+        defense: Math.floor(level * 0.9),
+        spareCondition: "Let it clean you twice",
+        actions: [
+          { name: "Check", description: "See monster stats", effect: null },
+          { name: "Clean", description: "Ask to be cleaned", effect: "increase spare chance" },
+          { name: "Touch", description: "Touch Woshua's soapy body", effect: null }
+        ],
+        bulletPatterns: [
+          {
+            name: "Soap Bubbles",
+            description: "Circular soap bubbles that float and pop",
+            difficulty: 3,
+            bulletTypes: ["normal"],
+            movements: "Floating, drifting upward"
+          }
+        ],
+        dialog: {
+          intro: ["* Woshua shuffles up!"],
+          fight: ["* Woshua is thinking about soap."],
+          act: {
+            "Check": ["* WOSHUA - ATK " + (2 * level) + " DEF " + Math.floor(level * 0.9), "* This germophobe is obsessed with cleanliness."],
+            "Clean": ["* You ask Woshua to clean you.", "* Woshua gives you a shower of 'friendliness pellets.'"],
+            "Touch": ["* You touch Woshua.", "* Woshua recoils from your touch! 'UNCLEAN!'"]
+          },
+          spare: ["* You won! Earned 0 EXP and " + Math.floor(15 * level) + " gold."],
+          defeat: ["* Wosh... my... soul..."]
+        }
+      },
+      {
+        name: "Temmie",
+        description: "A cat-like monster with a dog's face. Very excitable and speaks in broken English.",
+        hp: 15 * Math.max(1, level * 0.6),
+        attack: 1 * level,
+        defense: Math.floor(level * 0.3),
+        spareCondition: "Flex, check, or talk to it",
+        actions: [
+          { name: "Check", description: "See monster stats", effect: "increase spare chance" },
+          { name: "Talk", description: "Chat with Temmie", effect: "increase spare chance" },
+          { name: "Flex", description: "Show your muscles", effect: "increase spare chance" }
+        ],
+        bulletPatterns: [
+          {
+            name: "Temmie Flakes",
+            description: "Small, colorful flake-shaped bullets that move erratically",
+            difficulty: 2,
+            bulletTypes: ["normal"],
+            movements: "Random, jittery paths"
+          }
+        ],
+        dialog: {
+          intro: ["* Temmie appears! hOI!"],
+          fight: ["* Temmie is doing her hairs."],
+          act: {
+            "Check": ["* TEMMIE - ATK " + (1 * level) + " DEF " + Math.floor(level * 0.3), "* Special enemy Temmie. Loves to pet cute humans."],
+            "Talk": ["* You say hello to Temmie.", "* Temmie forgot her lines. 'hOI! i'm tEMMIE!'"],
+            "Flex": ["* You flex at Temmie...", "* Temmie is impressed by your muscles! 'WOA!! u humans got... MUSCLES!!'"]
+          },
+          spare: ["* You won! Earned 0 EXP and " + Math.floor(10 * level) + " gold."],
+          defeat: ["* tem... DIES!!"]
+        }
+      }
+    ];
+    
+    return waterfallMonsters[Math.floor(Math.random() * waterfallMonsters.length)];
   },
   
   async generateMonsterSprite(description) {
