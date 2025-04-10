@@ -321,11 +321,59 @@ export const battleGenerationService = {
   
   async processImageForTransparency(imageUrl) {
     try {
-      // For our purposes, we'll return the image URL directly
-      // In a real implementation, this would download the image,
-      // process the magenta background to make it transparent,
-      // and return a data URL of the processed image
-      return imageUrl;
+      // Create a promise that resolves when the image is loaded
+      const loadImage = (url) => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = "Anonymous"; // Enable CORS for the image
+          img.onload = () => resolve(img);
+          img.onerror = (e) => reject(e);
+          img.src = url;
+        });
+      };
+      
+      // Load the image
+      const img = await loadImage(imageUrl);
+      
+      // Create canvas and draw the image
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      
+      // Get image data
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      // Define the magenta color to make transparent
+      const targetR = 255;
+      const targetG = 0;
+      const targetB = 255;
+      const threshold = 50; // Allow for some color variation
+      
+      // Loop through the pixels and make magenta transparent
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        
+        // Check if the pixel color is close to magenta
+        const diffR = Math.abs(r - targetR);
+        const diffG = Math.abs(g - targetG);
+        const diffB = Math.abs(b - targetB);
+        
+        if (diffR < threshold && diffG < threshold && diffB < threshold) {
+          // Set the pixel's alpha value to 0 (transparent)
+          data[i + 3] = 0;
+        }
+      }
+      
+      // Put the modified image data back onto the canvas
+      ctx.putImageData(imageData, 0, 0);
+      
+      // Return the canvas as a data URL
+      return canvas.toDataURL('image/png');
     } catch (error) {
       console.error("Error processing image:", error);
       return this.getFallbackSprite();
