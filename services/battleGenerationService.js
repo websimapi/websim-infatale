@@ -306,7 +306,7 @@ export const battleGenerationService = {
     try {
       // Generate with solid magenta background for easier transparency removal
       const result = await websim.imageGen({
-        prompt: `Undertale-style pixel art sprite of ${description}. Solid magenta background (#FF00FF), simple design, front facing, 8-bit style.`,
+        prompt: `Undertale-style pixel art sprite of ${description}. Simple flat design with solid magenta (#FF00FF) background, front-facing, 8-bit style, no shading, clearly defined edges.`,
         aspect_ratio: "1:1",
       });
       
@@ -321,58 +321,83 @@ export const battleGenerationService = {
   
   async processImageForTransparency(imageUrl) {
     try {
-      // Create a promise that resolves when the image is loaded
-      const loadImage = (url) => {
-        return new Promise((resolve, reject) => {
-          const img = new Image();
-          img.crossOrigin = "Anonymous"; // Enable CORS for the image
-          img.onload = () => resolve(img);
-          img.onerror = (e) => reject(e);
-          img.src = url;
-        });
-      };
+      // Create a new image object
+      const img = new Image();
       
-      // Load the image
-      const img = await loadImage(imageUrl);
+      // Create a promise to handle the async image loading
+      const imageLoaded = new Promise((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("Failed to load image"));
+        img.crossOrigin = "Anonymous"; // Enable CORS for the image
+      });
       
-      // Create canvas and draw the image
+      // Set the source to start loading
+      img.src = imageUrl;
+      
+      // Wait for the image to load
+      await imageLoaded;
+      
+      // Create a canvas to process the image
       const canvas = document.createElement('canvas');
       canvas.width = img.width;
       canvas.height = img.height;
+      
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0);
       
-      // Get image data
+      // Get the image data to process pixels
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
-      // Define the magenta color to make transparent
-      const targetR = 255;
-      const targetG = 0;
-      const targetB = 255;
-      const threshold = 50; // Allow for some color variation
+      // Sample colors from the four corners to determine background color
+      const cornerPixels = [
+        { x: 0, y: 0 },                              // top-left
+        { x: canvas.width - 1, y: 0 },               // top-right
+        { x: 0, y: canvas.height - 1 },              // bottom-left
+        { x: canvas.width - 1, y: canvas.height - 1 } // bottom-right
+      ];
       
-      // Loop through the pixels and make magenta transparent
+      // Get RGB values for each corner
+      const cornerColors = cornerPixels.map(pixel => {
+        const index = (pixel.y * canvas.width + pixel.x) * 4;
+        return {
+          r: data[index],
+          g: data[index + 1],
+          b: data[index + 2]
+        };
+      });
+      
+      // Calculate average background color
+      const avgBgColor = {
+        r: cornerColors.reduce((sum, color) => sum + color.r, 0) / cornerColors.length,
+        g: cornerColors.reduce((sum, color) => sum + color.g, 0) / cornerColors.length,
+        b: cornerColors.reduce((sum, color) => sum + color.b, 0) / cornerColors.length
+      };
+      
+      // Set threshold for color matching (allow for some variation in the background)
+      const threshold = 30;
+      
+      // Make background transparent by checking each pixel against background color
       for (let i = 0; i < data.length; i += 4) {
         const r = data[i];
         const g = data[i + 1];
         const b = data[i + 2];
         
-        // Check if the pixel color is close to magenta
-        const diffR = Math.abs(r - targetR);
-        const diffG = Math.abs(g - targetG);
-        const diffB = Math.abs(b - targetB);
-        
-        if (diffR < threshold && diffG < threshold && diffB < threshold) {
-          // Set the pixel's alpha value to 0 (transparent)
+        // Check if this pixel is within threshold of the background color
+        if (
+          Math.abs(r - avgBgColor.r) < threshold &&
+          Math.abs(g - avgBgColor.g) < threshold &&
+          Math.abs(b - avgBgColor.b) < threshold
+        ) {
+          // Set alpha channel to 0 (transparent)
           data[i + 3] = 0;
         }
       }
       
-      // Put the modified image data back onto the canvas
+      // Put the modified image data back on the canvas
       ctx.putImageData(imageData, 0, 0);
       
-      // Return the canvas as a data URL
+      // Convert canvas to data URL
       return canvas.toDataURL('image/png');
     } catch (error) {
       console.error("Error processing image:", error);
