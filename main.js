@@ -3,6 +3,7 @@ import { playerService } from './services/playerService.js';
 import { battleService } from './services/battleService.js';
 import { dialogService } from './services/dialogService.js';
 import { overworldService } from './services/overworldService.js';
+import { combatService } from './services/combatService.js';
 import { gameData } from './data/gameData.js';
 
 const app = createApp({
@@ -27,6 +28,10 @@ const app = createApp({
         color: 'red'
       },
       attackLinePosition: 0,
+      attackDirection: 1,
+      attackSpeed: 3,
+      attackZoneWidth: 10,
+      attackZonePosition: 45,
       
       // Dialog system
       currentDialog: '',
@@ -56,7 +61,11 @@ const app = createApp({
         right: false,
         z: false,
         x: false
-      }
+      },
+      
+      // Services for easy access
+      battleService: battleService,
+      combatService: combatService
     };
   },
   
@@ -156,8 +165,8 @@ const app = createApp({
       battleService.performMercy(this, type);
     },
     
-    endBattle(outcome) {
-      battleService.endBattle(this, outcome);
+    checkLevelUp() {
+      return playerService.checkLevelUp(this);
     },
     
     // Add this method to handle the dialog system consistently

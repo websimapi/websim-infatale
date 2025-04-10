@@ -104,7 +104,14 @@
         <div v-if="currentScreen === 'battle'" class="screen battle-screen">
             <div class="monster-area">
                 <div class="monster" v-if="currentMonster">
+                    <div class="monster-health" v-if="currentMonster.maxHp > 0">
+                        <div class="health-bar">
+                            <div class="health-fill" :style="{ width: (currentMonster.hp / currentMonster.maxHp * 100) + '%' }"></div>
+                        </div>
+                        <div class="health-text">{{ currentMonster.hp }} / {{ currentMonster.maxHp }}</div>
+                    </div>
                     <div class="monster-sprite" v-if="currentMonster.spriteUrl" :style="{ backgroundImage: `url(${currentMonster.spriteUrl})` }"></div>
+                    <div class="monster-name">{{ currentMonster.name }}</div>
                 </div>
             </div>
             
@@ -159,9 +166,10 @@
                 
                 <div v-if="battleState === 'fightAction'" class="fight-action">
                     <div class="attack-bar">
-                        <div class="attack-zone"></div>
+                        <div class="attack-zone" :style="{ left: attackZonePosition + '%', width: attackZoneWidth + '%' }"></div>
                         <div class="attack-line" :style="{ left: attackLinePosition + '%' }"></div>
                     </div>
+                    <div class="attack-instructions">Press Z to strike!</div>
                 </div>
             </div>
         </div>

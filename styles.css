@@ -277,6 +277,14 @@ body {
   background-repeat: no-repeat;
 }
 
+.monster-sprite.death-shake {
+  animation: death-shake 0.5s ease-in-out;
+}
+
+.monster-sprite.death-fade {
+  animation: death-fade 1s forwards;
+}
+
 .battle-box {
   height: 50%;
   display: flex;
@@ -424,22 +432,68 @@ body {
   height: 30px;
   background-color: #333;
   position: relative;
+  border: 2px solid white;
+  overflow: hidden;
 }
 
 .attack-zone {
   position: absolute;
-  left: 45%;
-  width: 10%;
   height: 100%;
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 0, 0.3);
+}
+
+.attack-zone::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 100%;
+  background-color: rgba(255, 255, 0, 0.8);
 }
 
 .attack-line {
   position: absolute;
-  width: 5px;
+  width: 4px;
   height: 100%;
   background-color: white;
   top: 0;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+/* Enhanced battle styles */
+.damage-number {
+  position: absolute;
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 2px 2px 0 #000;
+  animation: damage-float 1s forwards;
+  z-index: 100;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.damage-number.perfect {
+  color: gold;
+  font-size: 32px;
+  text-shadow: 2px 2px 0 crimson;
+}
+
+.damage-number.critical {
+  color: orange;
+  font-size: 28px;
+}
+
+.damage-number.good {
+  color: yellow;
+}
+
+.damage-number.bad {
+  color: #aaa;
+  font-size: 20px;
 }
 
 /* GAME OVER SCREEN */
@@ -486,4 +540,22 @@ body {
   0% { transform: scale(1); }
   50% { transform: scale(1.2); }
   100% { transform: scale(0); }
+}
+
+@keyframes damage-float {
+  0% { transform: translateX(-50%) translateY(0); opacity: 1; }
+  100% { transform: translateX(-50%) translateY(-50px); opacity: 0; }
+}
+
+@keyframes death-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-10px); }
+  40% { transform: translateX(10px); }
+  60% { transform: translateX(-10px); }
+  80% { transform: translateX(10px); }
+}
+
+@keyframes death-fade {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
 }
