@@ -1,5 +1,7 @@
 // overworldService.js - Manages the overworld exploration and interactions
 
+import { dialogService } from './dialogService.js';
+
 let overworldLoopId = null;
 
 export const overworldService = {
@@ -260,6 +262,6 @@ export const overworldService = {
     // For now just show a placeholder message
     appContext.showOverworldDialog = true;
     appContext.dialogQueue = ["* There's nothing here."];
-    appContext.showNextDialog();
+    dialogService.showNextDialog(appContext);
   }
 };
