@@ -30,6 +30,16 @@
                 <div v-for="(obstacle, index) in currentArea.obstacles" :key="'obs-'+index" 
                      class="obstacle" :style="{ left: obstacle.x + 'px', top: obstacle.y + 'px', width: obstacle.width + 'px', height: obstacle.height + 'px' }"></div>
                 
+                <!-- NPC characters -->
+                <div v-for="(npc, index) in currentArea.npcs" :key="'npc-'+index" 
+                     class="npc-character" :style="{ 
+                         left: npc.x + 'px', 
+                         top: npc.y + 'px', 
+                         width: npc.width + 'px', 
+                         height: npc.height + 'px',
+                         backgroundImage: npc.sprite ? `url(${npc.sprite})` : null
+                     }"></div>
+                
                 <!-- Exits to next areas -->
                 <div v-for="(exit, index) in currentArea.exits" :key="'exit-'+index" 
                      class="area-exit" :style="{ left: exit.x + 'px', top: exit.y + 'px', width: exit.width + 'px', height: exit.height + 'px' }"></div>

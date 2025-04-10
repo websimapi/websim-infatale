@@ -28,6 +28,7 @@ export const overworldService = {
           y: 150,
           width: 30,
           height: 30,
+          sprite: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'%3E%3Crect width='30' height='30' fill='transparent'/%3E%3Ccircle cx='15' cy='15' r='7' fill='%23FFFF00'/%3E%3Ccircle cx='15' cy='15' r='4' fill='%23FFFFFF'/%3E%3Ccircle cx='12' cy='14' r='1' fill='%23000000'/%3E%3Ccircle cx='18' cy='14' r='1' fill='%23000000'/%3E%3Cpath d='M12 18 Q15 20 18 18' stroke='%23000000' fill='none'/%3E%3Cpath d='M5 15 Q0 5 12 3 Q20 3 25 10 Q30 15 25 25 Q15 30 5 15' fill='%23FFFF00' stroke='%23FFAA00' stroke-width='0.5'/%3E%3C/svg%3E",
           dialog: ["* Howdy! I'm FLOWEY.", "* FLOWEY the FLOWER!", "* Hmm... You're new to the UNDERGROUND, aren'tcha?"],
           interactionCount: 0
         }
@@ -56,7 +57,19 @@ export const overworldService = {
             { x: 0, y: 180, width: 20, height: 80, targetArea: "The Ruins", targetPosition: { x: 580, y: 200 } },
             { x: 600, y: 180, width: 40, height: 80, targetArea: "Waterfall", targetPosition: { x: 40, y: 200 } }
           ],
-          npcs: [],
+          npcs: [
+            {
+              id: "sans1",
+              name: "Sans",
+              x: 240, 
+              y: 180,
+              width: 35,
+              height: 45,
+              sprite: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='35' height='45' viewBox='0 0 35 45'%3E%3Crect width='35' height='45' fill='transparent'/%3E%3C!-- Jacket --%3E%3Cpath d='M5 15 L5 40 L30 40 L30 15 Z' fill='%230000AA'/%3E%3C!-- Head --%3E%3Ccircle cx='17.5' cy='12' r='10' fill='white'/%3E%3C!-- Eye sockets --%3E%3Ccircle cx='13' cy='10' r='3' fill='black'/%3E%3Ccircle cx='22' cy='10' r='3' fill='black'/%3E%3C!-- Pupils --%3E%3Ccircle cx='13' cy='10' r='1' fill='white'/%3E%3Ccircle cx='22' cy='10' r='1' fill='white'/%3E%3C!-- Smile --%3E%3Cpath d='M11 15 Q17.5 18 24 15' stroke='black' fill='none' stroke-width='1'/%3E%3C!-- Shorts --%3E%3Cpath d='M10 40 L10 45 L15 45 L15 40 Z' fill='black'/%3E%3Cpath d='M20 40 L20 45 L25 45 L25 40 Z' fill='black'/%3E%3C!-- Slippers --%3E%3Cpath d='M7 45 L15 45 L15 43 L7 43 Z' fill='%23FFC0CB'/%3E%3Cpath d='M20 45 L28 45 L28 43 L20 43 Z' fill='%23FFC0CB'/%3E%3C/svg%3E",
+              dialog: ["* heya.", "* i'm sans. sans the skeleton.", "* you're a human, right? that's hilarious."],
+              interactionCount: 0
+            }
+          ],
           encounters: {
             chance: 0.03,
             monsters: ["Snowdrake", "Ice Cap", "Doggo"]
@@ -77,7 +90,19 @@ export const overworldService = {
           exits: [
             { x: 0, y: 180, width: 20, height: 80, targetArea: "Snowdin", targetPosition: { x: 580, y: 200 } }
           ],
-          npcs: [],
+          npcs: [
+            {
+              id: "undyne1",
+              name: "Undyne",
+              x: 500, 
+              y: 150,
+              width: 40,
+              height: 60,
+              sprite: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='60' viewBox='0 0 40 60'%3E%3Crect width='40' height='60' fill='transparent'/%3E%3C!-- Armor --%3E%3Cpath d='M10 20 L10 50 L30 50 L30 20 Z' fill='%23444'/%3E%3C!-- Head --%3E%3Cpath d='M10 10 Q10 0 20 0 Q30 0 30 10 L30 20 L10 20 Z' fill='%2300AAAA'/%3E%3C!-- Eye --%3E%3Cpath d='M15 12 L25 12 L25 15 L15 15 Z' fill='yellow'/%3E%3Ccircle cx='20' cy='13.5' r='2' fill='black'/%3E%3C!-- Legs --%3E%3Cpath d='M12 50 L12 60 L18 60 L18 50 Z' fill='%2300AAAA'/%3E%3Cpath d='M22 50 L22 60 L28 60 L28 50 Z' fill='%2300AAAA'/%3E%3C!-- Spear --%3E%3Cpath d='M30 35 L40 35 L40 30 L30 30 Z' fill='%230088FF'/%3E%3C/svg%3E",
+              dialog: ["* NGAHHHH!!!", "* I am UNDYNE, head of the Royal Guard!", "* Your soul will be MINE, human!"],
+              interactionCount: 0
+            }
+          ],
           encounters: {
             chance: 0.03,
             monsters: ["Aaron", "Woshua", "Temmie"]

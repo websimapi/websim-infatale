@@ -63,6 +63,9 @@ const app = createApp({
         x: false
       },
       
+      // Asset loading status
+      assetsLoaded: false,
+      
       // Services for easy access
       battleService: battleService,
       combatService: combatService
@@ -72,6 +75,7 @@ const app = createApp({
   created() {
     window.addEventListener('keydown', this.handleKeyDown);
     window.addEventListener('keyup', this.handleKeyUp);
+    this.preloadAssets();
   },
   
   unmounted() {
@@ -81,8 +85,20 @@ const app = createApp({
   },
   
   methods: {
+    // Asset preloading
+    preloadAssets() {
+      // Mark assets as loaded for now - in a real game we'd load actual assets here
+      this.assetsLoaded = true;
+    },
+    
     // Game flow methods
     startGame() {
+      if (!this.assetsLoaded) {
+        // In a real game, we'd show a loading indicator here
+        setTimeout(this.startGame, 100);
+        return;
+      }
+      
       this.currentScreen = 'overworld';
       this.currentArea = overworldService.getStartingArea();
       
@@ -97,7 +113,7 @@ const app = createApp({
       dialogService.showDialogInOverworld(this, [
         "* Welcome to the Underground.",
         "* Use arrow keys to move around.",
-        "* Press Z to interact with objects.",
+        "* Press Z to interact with objects and NPCs.",
         "* Press X to open the menu."
       ]);
     },
@@ -169,7 +185,7 @@ const app = createApp({
       return playerService.checkLevelUp(this);
     },
     
-    // Add this method to handle the dialog system consistently
+    // Make sure the showNextDialog method exists for dialogService to use
     showNextDialog() {
       dialogService.showNextDialog(this);
     },
