@@ -160,6 +160,11 @@ const app = createApp({
       battleService.endBattle(this, outcome);
     },
     
+    // Add this method to handle the dialog system consistently
+    showNextDialog() {
+      dialogService.showNextDialog(this);
+    },
+    
     // Generic methods
     clearAllGameLoops() {
       overworldService.clearOverworldLoop();
@@ -168,6 +173,14 @@ const app = createApp({
     
     // Input Handling 
     handleKeyDown(e) {
+      // Prevent default action for arrow keys to avoid page scrolling
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+      }
+      
+      // Ignore repeated keydown events (when key is held down)
+      if (e.repeat) return;
+      
       switch (e.key.toLowerCase()) {
         case 'arrowup':
         case 'w':
@@ -193,8 +206,8 @@ const app = createApp({
             dialogService.progressDialog(this);
           }
           
-          // Handle interaction in overworld
-          if (this.currentScreen === 'overworld' && !this.showOverworldDialog) {
+          // Handle interaction in overworld - but only if not in dialog mode
+          else if (this.currentScreen === 'overworld' && !this.showOverworldDialog) {
             overworldService.interact(this);
           }
           break;

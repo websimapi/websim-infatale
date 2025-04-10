@@ -60,6 +60,10 @@ export const dialogService = {
       } else {
         appContext.showDialog = false;
       }
+      
+      // Reset the dialog state
+      appContext.currentDialog = '';
+      appContext.dialogComplete = false;
     }
   }
 };

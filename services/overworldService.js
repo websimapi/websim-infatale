@@ -1,6 +1,7 @@
 // overworldService.js - Manages the overworld exploration and interactions
 
 import { dialogService } from './dialogService.js';
+import { gameData } from '../data/gameData.js';
 
 let overworldLoopId = null;
 
@@ -19,7 +20,18 @@ export const overworldService = {
       exits: [
         { x: 600, y: 180, width: 40, height: 80, targetArea: "Snowdin", targetPosition: { x: 40, y: 200 } }
       ],
-      npcs: [],
+      npcs: [
+        {
+          id: "flower1",
+          name: "Mysterious Flower",
+          x: 320, 
+          y: 150,
+          width: 30,
+          height: 30,
+          dialog: ["* Howdy! I'm FLOWEY.", "* FLOWEY the FLOWER!", "* Hmm... You're new to the UNDERGROUND, aren'tcha?"],
+          interactionCount: 0
+        }
+      ],
       encounters: {
         chance: 0.02, // 2% chance per step for random encounter
         monsters: ["Froggit", "Whimsun"]
@@ -241,27 +253,100 @@ export const overworldService = {
     const player = appContext.player.overworld;
     let interactX = player.x;
     let interactY = player.y;
+    const interactDistance = 40; // Detection distance
     
     // Calculate position to check based on facing direction
     switch (player.facing) {
       case 'up':
-        interactY -= 20;
+        interactY -= interactDistance;
         break;
       case 'down':
-        interactY += 50;
+        interactY += interactDistance;
         break;
       case 'left':
-        interactX -= 20;
+        interactX -= interactDistance;
         break;
       case 'right':
-        interactX += 34;
+        interactX += interactDistance;
         break;
     }
     
-    // Check for NPCs or interactive objects
-    // For now just show a placeholder message
-    appContext.showOverworldDialog = true;
-    appContext.dialogQueue = ["* There's nothing here."];
-    dialogService.showNextDialog(appContext);
+    // Check for NPCs
+    const npc = this.findInteractableNPC(appContext, interactX, interactY);
+    if (npc) {
+      // Show NPC dialog
+      npc.interactionCount = (npc.interactionCount || 0) + 1;
+      dialogService.showDialogInOverworld(appContext, npc.dialog);
+      return;
+    }
+    
+    // Check if we're on a save point
+    if (this.isOnSavePoint(appContext, player.x, player.y)) {
+      // Heal player and show save message
+      appContext.player.hp = appContext.player.maxHp;
+      dialogService.showDialogInOverworld(appContext, [
+        "* The shadow of the ruins looms above, filling you with determination.",
+        "* HP fully restored.",
+        "* Game saved."
+      ]);
+      return;
+    }
+    
+    // If nothing to interact with, show an appropriate message based on the area
+    let areaMessage;
+    switch(appContext.currentArea.type) {
+      case 'ruins':
+        areaMessage = ["* The ruins stretch ahead of you.", "* Ancient puzzles await your solving."];
+        break;
+      case 'snowdin':
+        areaMessage = ["* The snow crunches beneath your feet.", "* A cool breeze blows through the trees."];
+        break;
+      case 'waterfall':
+        areaMessage = ["* The sound of flowing water fills the cavern.", "* Glowing crystals dot the ceiling."];
+        break;
+      default:
+        areaMessage = ["* You look around but see nothing of interest."];
+    }
+    
+    dialogService.showDialogInOverworld(appContext, areaMessage);
+  },
+  
+  findInteractableNPC(appContext, x, y) {
+    if (!appContext.currentArea.npcs) return null;
+    
+    // Player character dimensions for interaction checking
+    const interactionRadius = 40;
+    
+    for (const npc of appContext.currentArea.npcs) {
+      // Simple distance-based detection
+      const dx = (npc.x + (npc.width/2)) - (x + 16); // 16 is half of player width
+      const dy = (npc.y + (npc.height/2)) - (y + 24); // 24 is half of player height
+      const distance = Math.sqrt(dx*dx + dy*dy);
+      
+      if (distance < interactionRadius) {
+        return npc;
+      }
+    }
+    
+    return null;
+  },
+  
+  isOnSavePoint(appContext, x, y) {
+    // Simple check for save points (could be expanded to use actual coordinates)
+    const savePoints = [
+      { x: 320, y: 200, radius: 40 }  // Example save point location
+    ];
+    
+    for (const point of savePoints) {
+      const dx = point.x - (x + 16); // 16 is half of player width
+      const dy = point.y - (y + 24); // 24 is half of player height
+      const distance = Math.sqrt(dx*dx + dy*dy);
+      
+      if (distance < point.radius) {
+        return true;
+      }
+    }
+    
+    return false;
   }
 };

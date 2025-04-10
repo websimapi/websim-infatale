@@ -37,15 +37,43 @@ export const gameData = {
       entrance: [
         "* The shadow of the ruins looms above, filling you with determination.",
         "* HP fully restored."
+      ],
+      explore: [
+        "* The ruins are quiet and mysterious.",
+        "* Ancient puzzles await your solving.",
+        "* You feel like you're being watched."
       ]
     },
     snowdin: {
       entrance: [
         "* The cold air of Snowdin fills your lungs.",
         "* You feel determined to continue your journey."
+      ],
+      explore: [
+        "* The snow crunches beneath your feet.",
+        "* A cool breeze blows through the trees.",
+        "* You spot paw prints in the snow."
+      ]
+    },
+    waterfall: {
+      entrance: [
+        "* The sound of rushing water fills you with determination.",
+        "* The cavern glows with blue light."
+      ],
+      explore: [
+        "* Glowing crystals dot the ceiling.",
+        "* The water seems to glow with a soft blue light.",
+        "* You can hear echoes of conversations in the distance."
       ]
     }
   },
+  
+  // Save point locations
+  savePoints: [
+    { area: "The Ruins", x: 320, y: 220, radius: 40 },
+    { area: "Snowdin", x: 320, y: 220, radius: 40 },
+    { area: "Waterfall", x: 320, y: 220, radius: 40 }
+  ],
   
   // NPC definitions
   npcs: {
